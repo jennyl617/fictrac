@@ -9,6 +9,7 @@
 #include "timing.h"
 #include "misc.h"
 #include "fictrac_version.h"
+#include "NLoptFunc.h"
 
 #include <string>
 #include <csignal>

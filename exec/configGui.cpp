@@ -10,6 +10,7 @@
 #include "ConfigGui.h"
 #include "misc.h"
 #include "fictrac_version.h"
+#include "NLoptFunc.h"
 
 /// OpenCV individual includes required by gcc?
 #include <opencv2/highgui.hpp>
