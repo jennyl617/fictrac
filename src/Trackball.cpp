@@ -431,6 +431,26 @@ Trackball::Trackball(string cfg_fn)
     if (_do_display) {
         _drawThread = make_unique<std::thread>(&Trackball::processDrawQ, this);
     }
+
+
+    // 2018/12/04 JL
+    #ifdef WITH_REDIS
+
+    // Setup redis client
+    cpp_redis::client redis_client;
+    redis_client.connect();
+    string redis_channel("fictrac");
+
+    // Send reset message
+    json reset_msg;
+    reset_msg["type"] = string("reset");
+    redis_client.publish(redis_channel, reset_msg.dump());
+    redis_client.sync_commit();
+    #endif
+
+
+
+
     // main processing thread
     _thread = make_unique<std::thread>(&Trackball::process, this);
 }
@@ -504,6 +524,7 @@ void Trackball::process()
     } else {
         LOG("Set processing thread priority to HIGH!");
     }
+
 
     /// Sphere tracking loop.
     int nbad = 0;
@@ -883,6 +904,25 @@ bool Trackball::logData()
     ss << _intx << ", " << _inty << ", ";
     // timestamp | sequence number
     ss << _ts << ", " << _seq << std::endl;
+
+
+    // ADDED JL 12/4/18
+    #ifdef WITH_REDIS 
+        json data_msg;
+        data_msg["type"] = string("data");
+        data_msg["frame"] = cnt;
+        data_msg["posx"] = _posx;
+        data_msg["posy"] = _posy;
+        data_msg["velx"] = _velx;
+        data_msg["vely"] = _vely;
+        data_msg["heading"] = _heading*Maths::R2D;
+        redis_client.publish(redis_channel, data_msg.dump());
+        redis_client.sync_commit();
+    #endif
+
+
+
+
 
     // async i/o
     return _log->addMsg(ss.str());

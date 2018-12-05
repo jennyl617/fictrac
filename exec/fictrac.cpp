@@ -14,6 +14,26 @@
 #include <string>
 #include <csignal>
 
+
+
+// WBD added by JL 2018/12/04
+/////////////////////////////////////////////////////////////////
+#define WITH_REDIS
+
+#include <iostream>
+
+#ifdef WITH_REDIS
+#include <cpp_redis/cpp_redis>
+#include "json.hpp"
+using json = nlohmann::json;
+#endif
+
+//const uint16_t SOCKET_SIN_PORT = 5011;
+/////////////////////////////////////////////////////////////////
+
+
+
+
 using std::string;
 
 /// Ctrl-c handling
