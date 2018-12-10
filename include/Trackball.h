@@ -26,6 +26,13 @@
 #include <atomic>
 #include <deque>
 #include <vector>
+#include <string>
+
+//TESTING
+#ifdef CPP_REDIS
+#include <iostream>
+#include <cpp_redis/cpp_redis>
+#endif
 
 ///
 /// Estimate track ball orientation and update surface map.
@@ -40,6 +47,14 @@ public:
     void terminate() { _kill = true; }
     void printState();
     bool writeTemplate(std::string fn = "");
+
+
+
+	/// CPP redis stuff
+#ifdef CPP_REDIS
+	std::string redis_channel;
+	cpp_redis::client redis_client;
+#endif
 
 private:
     /// Worker function.
@@ -78,6 +93,8 @@ private:
     cv::VideoWriter _debug_vid, _raw_vid;
 
     std::unique_ptr<std::thread> _drawThread;
+
+
 
 private:
 
@@ -128,6 +145,8 @@ private:
     std::string _base_fn;
     std::unique_ptr<FrameGrabber> _frameGrabber;
     std::unique_ptr<Recorder> _log;
+
+
 
     /// Thread stuff.
     std::atomic_bool _active, _kill;

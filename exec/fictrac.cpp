@@ -13,26 +13,16 @@
 
 #include <string>
 #include <csignal>
+#include "Maths.h"
+#include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
 
-
-
-// WBD added by JL 2018/12/04
-/////////////////////////////////////////////////////////////////
-#define WITH_REDIS
-
+#ifdef CPP_REDIS
 #include <iostream>
-
-#ifdef WITH_REDIS
 #include <cpp_redis/cpp_redis>
 #include "json.hpp"
 using json = nlohmann::json;
 #endif
-
-//const uint16_t SOCKET_SIN_PORT = 5011;
-/////////////////////////////////////////////////////////////////
-
-
-
 
 using std::string;
 
@@ -82,6 +72,9 @@ int main(int argc, char *argv[])
     } else {
         LOG("Set process priority to HIGH!");
     }
+
+
+
 
     Trackball tracker(config_fn);
 

@@ -6,6 +6,8 @@
 
 //FIXME: better alg for preferancing high-overlap good matches?
 
+#define _WINSOCKAPI_ 
+
 #include "Trackball.h"
 
 #include "geometry.h"
@@ -16,6 +18,10 @@
 #include "BasicRemapper.h"
 #include "misc.h"
 #include "CVSource.h"
+#include "Maths.h"
+#include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
+
 #ifdef PGR_USB3
 #include "PGRSource.h"
 #endif // PGR_USB3
@@ -30,6 +36,19 @@
 #include <cmath>
 #include <exception>
 
+// WBD added by JL 2018/12/04
+/////////////////////////////////////////////////////////////////
+
+#ifdef CPP_REDIS
+#include <iostream>
+#include <cpp_redis/cpp_redis>
+#include "json.hpp"
+using json = nlohmann::json;
+#endif
+
+//const uint16_t SOCKET_SIN_PORT = 5011;
+/////////////////////////////////////////////////////////////////
+
 using std::string;
 using std::make_unique;
 using std::make_shared;
@@ -43,6 +62,7 @@ using cv::Scalar;
 using cv::Rect;
 using cv::Point2d;
 using cv::Point2i;
+using rjdm::Maths;
 
 const int DRAW_SPHERE_HIST_LENGTH = 250;
 const int DRAW_CELL_DIM = 160;
@@ -432,25 +452,6 @@ Trackball::Trackball(string cfg_fn)
         _drawThread = make_unique<std::thread>(&Trackball::processDrawQ, this);
     }
 
-
-    // 2018/12/04 JL
-    #ifdef WITH_REDIS
-
-    // Setup redis client
-    cpp_redis::client redis_client;
-    redis_client.connect();
-    string redis_channel("fictrac");
-
-    // Send reset message
-    json reset_msg;
-    reset_msg["type"] = string("reset");
-    redis_client.publish(redis_channel, reset_msg.dump());
-    redis_client.sync_commit();
-    #endif
-
-
-
-
     // main processing thread
     _thread = make_unique<std::thread>(&Trackball::process, this);
 }
@@ -525,6 +526,21 @@ void Trackball::process()
         LOG("Set processing thread priority to HIGH!");
     }
 
+#ifdef CPP_REDIS
+
+	// Setup redis client
+	cpp_redis::client redis_client;
+	redis_client.connect();
+	string redis_channel = "fictrac";
+
+	// Send reset message
+	json reset_msg;
+	reset_msg["type"] = "reset";
+	redis_client.publish("fictrac", reset_msg.dump());
+	redis_client.sync_commit();
+	LOG("redis made");
+
+#endif
 
     /// Sphere tracking loop.
     int nbad = 0;
@@ -554,8 +570,23 @@ void Trackball::process()
             updatePath();
             t4 = ts_ms();
             logData();  // only output good data
+			#ifdef CPP_REDIS // output good data to redis client
+				json data_msg;
+				data_msg["type"] = "data";
+				LOG("redis msg");
+				data_msg["frame"] = _cnt;
+				data_msg["posx"] = _posx;
+				data_msg["posy"] = _posy;
+				data_msg["velx"] = _velx;
+				data_msg["vely"] = _vely;
+				data_msg["heading"] = _heading * Maths::R2D;
+				redis_client.publish("fictrac", data_msg.dump());
+				redis_client.sync_commit();
+				LOG("redis sent");
+			#endif
             t5 = ts_ms();
             nbad = 0;
+
         }
 
         /// Handle failed localisation.
@@ -580,6 +611,10 @@ void Trackball::process()
 
             updateCanvasAsync(data);
         }
+
+		// ADDED JL 12/4/18
+
+
         t6 = ts_ms();
 
         /// Timing.
@@ -904,25 +939,6 @@ bool Trackball::logData()
     ss << _intx << ", " << _inty << ", ";
     // timestamp | sequence number
     ss << _ts << ", " << _seq << std::endl;
-
-
-    // ADDED JL 12/4/18
-    #ifdef WITH_REDIS 
-        json data_msg;
-        data_msg["type"] = string("data");
-        data_msg["frame"] = cnt;
-        data_msg["posx"] = _posx;
-        data_msg["posy"] = _posy;
-        data_msg["velx"] = _velx;
-        data_msg["vely"] = _vely;
-        data_msg["heading"] = _heading*Maths::R2D;
-        redis_client.publish(redis_channel, data_msg.dump());
-        redis_client.sync_commit();
-    #endif
-
-
-
-
 
     // async i/o
     return _log->addMsg(ss.str());

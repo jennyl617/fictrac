@@ -1,0 +1,7 @@
+cmake -G "Visual Studio 15 2017 Win64" -D OPENCV_DIR="C:\Users\Jenny\Documents\src\opencv\build" -D NLOPT_DIR="C:\Users\Jenny\Documents\src\nlopt-2.4.2" -D PGR_USB3=ON -D PGR_DIR="C:\Program Files\Point Grey Research\Spinnaker" -D CPP_REDIS=ON -D CPPREDIS_DIR="C:\Users\Jenny\Documents\src\cpp_redis" -D BOOST_DIR="C:\Users\Jenny\Documents\src\boost_1_67_0" ..
+
+cmake --build . --config Release
+
+
+..\bin\Release\configGui.exe config.txt
+..\bin\Release\fictrac.exe config.txt
