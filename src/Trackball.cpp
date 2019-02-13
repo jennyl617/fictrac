@@ -526,21 +526,21 @@ void Trackball::process()
         LOG("Set processing thread priority to HIGH!");
     }
 
-#ifdef CPP_REDIS
+	#ifdef CPP_REDIS
 
-	// Setup redis client
-	cpp_redis::client redis_client;
-	redis_client.connect();
-	string redis_channel = "fictrac";
+		// Setup redis client
+		cpp_redis::client redis_client;
+		redis_client.connect();
+		string redis_channel = "fictrac";
 
-	// Send reset message
-	json reset_msg;
-	reset_msg["type"] = "reset";
-	redis_client.publish("fictrac", reset_msg.dump());
-	redis_client.sync_commit();
-	LOG("redis made");
+		// Send reset message
+		json reset_msg;
+		reset_msg["type"] = "reset";
+		redis_client.publish("fictrac", reset_msg.dump());
+		//redis_client.sync_commit();
+		//LOG("redis made");
 
-#endif
+	#endif
 
     /// Sphere tracking loop.
     int nbad = 0;
@@ -569,16 +569,17 @@ void Trackball::process()
             t3 = ts_ms();
             updatePath();
             t4 = ts_ms();
-            logData();  // only output good data
+            //logData();  // only output good data -- trying to make this faster
 			#ifdef CPP_REDIS // output good data to redis client
 				json data_msg;
 				data_msg["type"] = "data";
-				LOG("redis msg");
 				data_msg["frame"] = _cnt;
 				data_msg["posx"] = _posx;
 				data_msg["posy"] = _posy;
 				data_msg["velx"] = _velx;
 				data_msg["vely"] = _vely;
+				data_msg["intx"] = _intx;
+				data_msg["inty"] = _inty;
 				data_msg["heading"] = _heading * Maths::R2D;
 				redis_client.publish("fictrac", data_msg.dump());
 				redis_client.sync_commit();
