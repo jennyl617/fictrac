@@ -494,9 +494,9 @@ void Trackball::reset()
 
     /// Reset data.
     _seq = 0;       // indicates new sequence started
-    _posx = 0;      // reset because heading was lost
-    _posy = 0;
-    _heading = 0;
+    //_posx = 0;      // reset because heading was lost -- DONT FIX
+    //_posy = 0;		// DONT RESET
+    //_heading = 0; // DONT RESET
 
     // test data
     _dist = 0;
@@ -580,6 +580,7 @@ void Trackball::process()
 				data_msg["vely"] = _vely;
 				data_msg["intx"] = _intx;
 				data_msg["inty"] = _inty;
+				data_msg["deltaheading"] = -_dr_lab[2] * Maths::R2D;
 				data_msg["heading"] = _heading * Maths::R2D;
 				redis_client.publish("fictrac", data_msg.dump());
 				redis_client.sync_commit();
