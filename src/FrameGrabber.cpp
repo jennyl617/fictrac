@@ -63,7 +63,7 @@ FrameGrabber::FrameGrabber( shared_ptr<FrameSource> source,
 
     /// Thread stuff.
     _active = true;
-    _thread = std::unique_ptr<std::thread>(new std::thread(&FrameGrabber::process, this));
+    _thread = std::make_unique<std::thread>(&FrameGrabber::process, this);
 }
 
 ///
@@ -182,8 +182,8 @@ void FrameGrabber::process()
     Mat thresh_max(_rh, _rw, CV_8UC1);
     thresh_max.setTo(cv::Scalar::all(0));
 
-    std::unique_ptr<uint8_t[]> win_max_hist = std::unique_ptr<uint8_t[]>(new uint8_t[_thresh_win]);
-    std::unique_ptr<uint8_t[]> win_min_hist = std::unique_ptr<uint8_t[]>(new uint8_t[_thresh_win]);
+    auto win_max_hist = std::make_unique<uint8_t[]>(_thresh_win);
+    auto win_min_hist = std::make_unique<uint8_t[]>(_thresh_win);
 
     /// Rewind to video start.
     _source->rewind();
@@ -202,7 +202,7 @@ void FrameGrabber::process()
     while (_active) {
         /// Wait until we need to capture a new frame.
         unique_lock<mutex> l(_qMutex);
-        while (_active && (_max_buf_len >= 0) && (_frame_q.size() >= _max_buf_len)) {
+        while (_active && (_max_buf_len > 0) && (_frame_q.size() >= _max_buf_len)) {
             _qCond.wait(l);
         }
         l.unlock();
@@ -235,7 +235,7 @@ void FrameGrabber::process()
         memset(win_min_hist.get(), 0, _thresh_win);
 
         /// Create grey ROI frame.
-        cv::cvtColor(frame_bgr, frame_grey, CV_BGR2GRAY);
+        cv::cvtColor(frame_bgr, frame_grey, cv::COLOR_BGR2GRAY);
         _remapper->apply(frame_grey, remap_grey);
 
         /// Blur image before calculating region min/max values.
