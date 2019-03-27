@@ -9,9 +9,20 @@
 #include "timing.h"
 #include "misc.h"
 #include "fictrac_version.h"
+#include "NLoptFunc.h"
 
 #include <string>
 #include <csignal>
+#include "Maths.h"
+#include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
+
+#ifdef CPP_REDIS
+#include <iostream>
+#include <cpp_redis/cpp_redis>
+#include "json.hpp"
+using json = nlohmann::json;
+#endif
 
 using std::string;
 
@@ -61,6 +72,9 @@ int main(int argc, char *argv[])
     } else {
         LOG("Set process priority to HIGH!");
     }
+
+
+
 
     Trackball tracker(config_fn);
 

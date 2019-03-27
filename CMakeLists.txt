@@ -28,6 +28,11 @@ if(PGR_USB3)
 elseif(PGR_USB2)
     set(PGR_DIR "." CACHE PATH "Path to PGR FlyCapture SDK folder")
 endif()
+option(CPP_REDIS "Use CPP redis client" OFF) # Disabled by default
+if(CPP_REDIS)
+	set(CPPREDIS_DIR "." CACHE PATH "Path to CPP_REDIS folder")
+	set(BOOST_DIR "." CACHE PATH "Path to CPP_REDIS folder")
+endif()
 
 # find dependencies
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPENCV_DIR} ${NLOPT_DIR})
@@ -42,6 +47,11 @@ if(MSVC)
         set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PGR_DIR}/lib64/vs2015)
         find_library(PGR_LIB FlyCapture2_v140.lib)
     endif()
+	if(CPP_REDIS)
+		set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CPPREDIS_DIR}/msvc15/x64/Release)
+		find_library(CPPREDIS_LIB cpp_redis.lib)
+		find_library(TACOPIE_LIB tacopie.lib)
+	endif()
 else()  # gcc
     find_package(OpenCV)
     find_library(NLOPT_LIB libnlopt.a)
@@ -75,6 +85,23 @@ if(PGR_USB2 OR PGR_USB3)
         message(FATAL_ERROR "Error! Could not find PGR FlyCapture/Spinnaker lib at ${PGR_DIR}!")
     endif()
 endif()
+if(CPP_REDIS)
+	get_filename_component(CPPREDIS_DIR ${CPPREDIS_LIB} DIRECTORY)
+	get_filename_component(CPPREDIS_DIR ${CPPREDIS_DIR} DIRECTORY)
+    get_filename_component(CPPREDIS_DIR ${CPPREDIS_DIR} DIRECTORY)
+	get_filename_component(CPPREDIS_DIR ${CPPREDIS_DIR} DIRECTORY) # step up 3 levels
+	if(CPPREDIS_LIB)
+		message(STATUS "Found CPP_Redis lib ${CPPREDIS_LIB} at ${CPPREDIS_DIR}!")
+	else()
+		message(FATAL_ERROR "Error! Could not find CPP Redis lib at ${CPPREDIS_DIR}!")
+	endif()
+	if(TACOPIE_LIB)
+		message(STATUS "Found Tacopie lib ${TACOPIE_LIB}")
+	else()
+		message(FATAL_ERROR "Error! Could not find Tacopie lib at ${CPPREDIS_DIR}!")
+	endif()
+endif()
+
 
 # add include dirs
 include_directories(${PROJECT_SOURCE_DIR}/include ${OpenCV_INCLUDE_DIRS} ${NLOPT_DIR})
@@ -89,6 +116,15 @@ if(PGR_USB2 OR PGR_USB3)
         endif()
     endif()
 endif()
+if(CPP_REDIS)
+    if(MSVC)
+        include_directories(${CPPREDIS_DIR}/includes)
+		include_directories(${CPPREDIS_DIR}/tacopie/includes)
+		include_directories(${BOOST_DIR})
+    endif()
+endif()
+
+
 
 # find sources to build
 file(GLOB LIBFICTRAC_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
@@ -106,6 +142,10 @@ if(PGR_USB2)
 elseif(PGR_USB3)
     target_compile_definitions(libfictrac PUBLIC PGR_USB3)
 endif()
+if(CPP_REDIS)
+    target_compile_definitions(libfictrac PUBLIC CPP_REDIS)
+endif()
+
 
 # add compile options
 if(MSVC)
@@ -115,9 +155,14 @@ else()  # gcc
 endif()
 
 # linking and post-build
+# target_link_libraries(libfictrac PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(libfictrac PUBLIC ${OpenCV_LIBS} ${NLOPT_LIB})
 if(PGR_USB2 OR PGR_USB3)
     target_link_libraries(libfictrac PUBLIC ${PGR_LIB})
+endif()
+if(CPP_REDIS)
+    target_link_libraries(libfictrac PUBLIC ${CPPREDIS_LIB})
+	target_link_libraries(libfictrac PUBLIC ${TACOPIE_LIB})
 endif()
 if(MSVC)
     # win-specific libraries
