@@ -30,6 +30,7 @@ CVSource::CVSource(std::string input)
     try {
         // try reading input as camera id
         LOG_DBG("Trying source as camera id..");
+        if (input.size() > 2) { throw std::exception(); }
         int id = std::stoi(input);
         _cap = std::shared_ptr<cv::VideoCapture>(new cv::VideoCapture(id));
         if (!_cap->isOpened()) { throw 0; }
@@ -60,6 +61,14 @@ CVSource::CVSource(std::string input)
 	if( _open ) {
 		_width = static_cast<int>(_cap->get(cv::CAP_PROP_FRAME_WIDTH));
 		_height = static_cast<int>(_cap->get(cv::CAP_PROP_FRAME_HEIGHT));
+        if (_live) {
+            _fps = getFPS();    // don't init fps for video files - we might want to play them back as fast as possible
+
+            LOG("OpenCV camera initialised (%dx%d @ %.3f fps)!", _width, _height, _fps);
+        }
+        else {
+            LOG("OpenCV video initialised (%dx%d)!", _width, _height);
+        }
 	}
 }
 
@@ -90,9 +99,13 @@ bool CVSource::setFPS(double fps)
     if (_open && (fps > 0)) {
         if (!_cap->set(cv::CAP_PROP_FPS, fps)) {
             LOG_WRN("Warning! Failed to set device fps (attempted to set fps=%.2f).", fps);
+            _fps = fps; // just set fps anyway for playback
+            LOG("Playback frame rate is now %.2f", _fps);
         }
-        _fps = getFPS();
-        LOG("Device frame rate is now %.2f", _fps);
+        else {
+            _fps = getFPS();
+            LOG("Device frame rate is now %.2f", _fps);
+        }
     }
     return ret;
 }
@@ -131,20 +144,20 @@ bool CVSource::grab(cv::Mat& frame)
 	if( _frame_cap.channels() == 1 ) {
 		switch( _bayerType ) {
 			case BAYER_BGGR:
-				cv::cvtColor(_frame_cap, frame, CV_BayerBG2BGR);
+				cv::cvtColor(_frame_cap, frame, cv::COLOR_BayerBG2BGR);
 				break;
 			case BAYER_GBRG:
-				cv::cvtColor(_frame_cap, frame, CV_BayerGB2BGR);
+				cv::cvtColor(_frame_cap, frame, cv::COLOR_BayerGB2BGR);
 				break;
 			case BAYER_GRBG:
-				cv::cvtColor(_frame_cap, frame, CV_BayerGR2BGR);
+				cv::cvtColor(_frame_cap, frame, cv::COLOR_BayerGR2BGR);
 				break;
 			case BAYER_RGGB:
-				cv::cvtColor(_frame_cap, frame, CV_BayerRG2BGR);
+				cv::cvtColor(_frame_cap, frame, cv::COLOR_BayerRG2BGR);
 				break;
 			case BAYER_NONE:
 			default:
-				cv::cvtColor(_frame_cap, frame, CV_GRAY2BGR);
+				cv::cvtColor(_frame_cap, frame, cv::COLOR_GRAY2BGR);
 				break;
 		}
 	} else {
@@ -153,9 +166,9 @@ bool CVSource::grab(cv::Mat& frame)
 
     /// Correct average frame rate when reading from file.
     if (!_live && (_fps > 0)) {
-        static double prev_ts = ts - 25; // initially 40 Hz
-        static double av_fps = 40;      // initially 40 Hz
-        static double sleep_ms = 25;
+        static double prev_ts = ts - (1000/_fps);
+        static double av_fps = _fps;      // initially 40 Hz
+        static double sleep_ms = 1000/_fps;
         av_fps = 0.15 * av_fps + 0.85 * (1000 / (ts - prev_ts));
         sleep_ms *= 0.25 * (av_fps / _fps) + 0.75;
         sleep(static_cast<long>(round(sleep_ms)));

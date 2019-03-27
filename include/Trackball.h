@@ -144,11 +144,12 @@ private:
     /// Data i/o.
     std::string _base_fn;
     std::unique_ptr<FrameGrabber> _frameGrabber;
-    std::unique_ptr<Recorder> _log;
+    bool _do_sock_output;
+    std::unique_ptr<Recorder> _data_log, _data_sock;
 
 
 
     /// Thread stuff.
-    std::atomic_bool _active, _kill;
+    std::atomic_bool _active, _kill, _do_reset;
     std::unique_ptr<std::thread> _thread;
 };
